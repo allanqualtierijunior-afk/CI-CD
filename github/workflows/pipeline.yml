@@ -5,14 +5,47 @@ on:
   push:
     branches: [ "main" ]
 
+# Permissão necessária para criar tags
+permissions:
+  contents: write
+
 jobs:
-  build:
+  # NOVO JOB: Versionamento SemVer
+  version:
     runs-on: ubuntu-latest
+    steps:
+    - name: Baixar código
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 # Essencial para pegar todas as tags
+    
+    - name: Gerar nova versão
+      id: tag_version
+      uses: hennejg/github-tag-action@v4.3.1
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        default_bump: patch
+    
+    - name: Criar Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ steps.tag_version.outputs.new_tag }}
+        name: Release ${{ steps.tag_version.outputs.new_tag }}
+        body: |
+          📦 **Versão ${{ steps.tag_version.outputs.new_version }}**
+          
+          ### Mudanças:
+          ${{ steps.tag_version.outputs.changelog }}
+        draft: false
+        prerelease: false
+
+  teste:
+    runs-on: ubuntu-latest
+    needs: version 
 
     steps:
-    # 1. Baixar o código do repositório
     - name: Baixar código
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     # 2. Instalar Node
     - name: Instalar Node
